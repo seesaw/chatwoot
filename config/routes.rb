@@ -11,7 +11,7 @@ Rails.application.routes.draw do
 
   match '/status', to: 'home#status', via: [:get]
 
-  resources :widgets, only: [:index]
+  resource :widget, only: [:show]
 
   namespace :api, defaults: { format: 'json' } do
     namespace :v1 do
@@ -25,8 +25,9 @@ Rails.application.routes.draw do
       end
 
       namespace :widget do
-        resources :messages, only: [:index, :create]
+        resources :messages, only: [:index, :create, :update]
         resources :inboxes, only: [:create, :update]
+        resources :inbox_members, only: [:index]
       end
 
       namespace :actions do
@@ -37,7 +38,6 @@ Rails.application.routes.draw do
       resources :accounts, only: [:create]
       resources :inboxes, only: [:index, :destroy]
       resources :agents, except: [:show, :edit, :new]
-      resources :contacts, only: [:index, :show, :update, :create]
       resources :labels, only: [:index]
       resources :canned_responses, except: [:show, :edit, :new]
       resources :inbox_members, only: [:create, :show], param: :inbox_id
@@ -73,6 +73,12 @@ Rails.application.routes.draw do
         end
       end
 
+      resources :contacts, only: [:index, :show, :update, :create] do
+        scope module: :contacts do
+          resources :conversations, only: [:index]
+        end
+      end
+
       # this block is only required if subscription via chargebee is enabled
       if ENV['BILLING_ENABLED']
         resources :subscriptions, only: [:index] do
@@ -90,12 +96,6 @@ Rails.application.routes.draw do
     end
   end
 
-  # Sidekiq Web UI
-  require 'sidekiq/web'
-  authenticate :user, ->(u) { u.administrator? } do
-    mount Sidekiq::Web => '/sidekiq'
-  end
-
   # Used in mailer templates
   resource :app, only: [:index] do
     resources :conversations, only: [:show]
@@ -106,4 +106,25 @@ Rails.application.routes.draw do
 
   # Routes for testing
   resources :widget_tests, only: [:index] unless Rails.env.production?
+
+  # ----------------------------------------------------------------------
+  # Internal Monitoring Routes
+  require 'sidekiq/web'
+
+  scope :monitoring do
+    # Sidekiq should use basic auth in production environment
+    if Rails.env.production?
+      Sidekiq::Web.use Rack::Auth::Basic do |username, password|
+        ENV['SIDEKIQ_AUTH_USERNAME'] &&
+          ENV['SIDEKIQ_AUTH_PASSWORD'] &&
+          ActiveSupport::SecurityUtils.secure_compare(::Digest::SHA256.hexdigest(username),
+                                                      ::Digest::SHA256.hexdigest(ENV['SIDEKIQ_AUTH_USERNAME'])) &&
+          ActiveSupport::SecurityUtils.secure_compare(::Digest::SHA256.hexdigest(password),
+                                                      ::Digest::SHA256.hexdigest(ENV['SIDEKIQ_AUTH_PASSWORD']))
+      end
+    end
+
+    mount Sidekiq::Web, at: '/sidekiq'
+  end
+  # ----------------------------------------------------------------------
 end
