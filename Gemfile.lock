@@ -497,6 +497,7 @@ DEPENDENCIES
   facebook-messenger
   factory_bot_rails
   faker
+  faraday
   foreman
   google-cloud-storage
   haikunator

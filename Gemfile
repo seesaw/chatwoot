@@ -28,6 +28,8 @@ gem 'azure-storage', require: false
 gem 'google-cloud-storage', require: false
 gem 'mini_magick'
 
+gem 'faraday'
+
 ##-- gems for database --#
 gem 'pg'
 gem 'redis'
