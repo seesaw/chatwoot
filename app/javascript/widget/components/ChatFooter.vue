@@ -33,6 +33,7 @@ export default {
   background: $color-white;
   box-sizing: border-box;
   padding: $space-small $space-slab;
+  margin-bottom: $space-one;
   width: 100%;
   border-radius: 7px;
   @include shadow-big;
