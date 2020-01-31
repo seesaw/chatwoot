@@ -1,17 +1,11 @@
 class BotHookListener < BaseListener
   include Events::Types
 
-  def conversation_created(event)
-    conversation, _account, _timestamp = extract_conversation_and_account(event)
-    contact = conversation.contact
-    send_to_bot(contact, MESSAGE_CREATED, nil)
-  end
-
   def message_created(event)
     message, _account, _timestamp = extract_message_and_account(event)
     conversation = message.conversation
     contact = conversation.contact
-    send_to_bot(contact, MESSAGE_CREATED, message)
+    send_to_bot(contact, MESSAGE_CREATED, message) if message.incoming?
   end
 
   private
@@ -21,6 +15,6 @@ class BotHookListener < BaseListener
   end
 
   def conn
-    @conn ||= Faraday.new(url: ENV['CHATWOOT_HOOK_URL'] || 'http://601b5d9a.ngrok.io')
+    @conn ||= Faraday.new(url: ENV['CHATWOOT_HOOK_URL'] || 'http://localhost:5000')
   end
 end
